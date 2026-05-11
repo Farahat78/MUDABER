@@ -1,0 +1,31 @@
+# ── Smart Salary App — Frontend Requirements ──────────────────────────────────
+# Install: pip install -r requirements.txt
+
+# Core
+streamlit>=1.35.0
+
+# Data
+pandas>=2.0.0
+numpy>=1.24.0
+
+# ML (financial model inference only — NO training here)
+scikit-learn>=1.3.0
+xgboost>=1.7.0
+joblib>=1.3.0
+
+# Visualisation
+plotly>=5.18.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Shopping list modules
+google-genai>=0.8.0
+rapidfuzz>=3.6.0
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2
+
+# Smart Insights modules
+scipy>=1.11.0
+
+# Env
+python-dotenv>=1.0.0
