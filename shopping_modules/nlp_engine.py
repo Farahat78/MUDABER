@@ -33,8 +33,7 @@ from google import genai
 from google.genai import types
 
 # ── Config ────────────────────────────────────────────────────────────────────
-_HARDCODED_KEY = "AIzaSyBpA8S9vLU-VmNlVHSlVsgCTkAGA9bVvG0"
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", _HARDCODED_KEY)
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 GEMINI_MODEL   = "gemini-2.0-flash"
 
 KNOWN_CATEGORIES = [
