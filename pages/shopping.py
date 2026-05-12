@@ -284,12 +284,76 @@ def render():
                     session_id=st.session_state.shop_session_id,
                     family_size=family_size,
                 )
+
+            if parsed_intent.get("baby_mode"):
+                st.markdown('<div style="background:#fff3cd;border:2px solid #ffc107;border-radius:10px;padding:0.7rem;text-align:center;font-size:1.05rem;margin:0.4rem 0">👶 <b>وضع الطفل مُفعَّل!</b></div>', unsafe_allow_html=True)
+            if parsed_intent.get("diet_mode"):
+                st.markdown('<div style="background:#eafaf1;border:2px solid #27ae60;border-radius:10px;padding:0.7rem;text-align:center;font-size:1.05rem;margin:0.4rem 0">🥗 <b>وضع الدايت مُفعَّل!</b></div>', unsafe_allow_html=True)
+            if parsed_intent.get("gym_mode"):
+                st.markdown('<div style="background:#eaf2ff;border:2px solid #2e86c1;border-radius:10px;padding:0.7rem;text-align:center;font-size:1.05rem;margin:0.4rem 0">💪 <b>وضع الجيم مُفعَّل!</b></div>', unsafe_allow_html=True)
+
             if updated is not None and not updated.empty:
                 st.session_state.shopping_list = _enrich_with_predictions(updated, predictions)
-                st.success(mod_summary)
+
+                rules_used = parsed_intent.get("rules") or []
+                engine_tag = "📋 NLP" if rules_used else "🤖 Gemini/AI"
+
+                st.session_state.mod_history.append({
+                    "instruction":  user_instruction,
+                    "result":       mod_summary,
+                    "timestamp":    pd.Timestamp.now().strftime("%H:%M:%S"),
+                    "intent":       parsed_intent.get("intent", parsed_intent.get("intent_summary", "")),
+                    "score":        score_bd.total if score_bd else 0,
+                    "grade":        score_bd.grade if score_bd else "?",
+                    "action_count": len(rules_used) or parsed_intent.get("_applied", 0),
+                    "engine":       engine_tag,
+                })
                 st.rerun()
             else:
                 st.warning(mod_summary)
+
+        # Modification history
+        if st.session_state.mod_history:
+            with st.expander(f"📜 سجل التعديلات ({len(st.session_state.mod_history)})", expanded=True):
+                for h in reversed(st.session_state.mod_history):
+                    score_tag  = f" | ⭐{h.get('score',0):.0f}" if h.get("score") else ""
+                    engine_tag = f" [{h.get('engine','')}]" if h.get("engine") else ""
+                    st.markdown(f"**{h['timestamp']}** — `{h['instruction']}` ({h.get('action_count','?')} أوامر{score_tag}{engine_tag})")
+                    if h.get("intent"): st.caption(f"  💬 {h['intent']}")
+                    st.markdown(f'<div style="background:#eafaf1;border:1px solid #27ae60;border-radius:8px;padding:0.5rem;margin-bottom:1rem;white-space:pre-wrap">{h["result"]}</div>', unsafe_allow_html=True)
+
+        # Quick buttons
+        st.markdown("#### ⚡ تعديلات سريعة")
+        qb_cols = st.columns(6)
+        quick_cmds = [
+            (qb_cols[0], "🐟 زود السمك",         "زود السمك"),
+            (qb_cols[1], "🥦 أكل صحي",           "عايز آكل صحي"),
+            (qb_cols[2], "💰 الأرخص",             "عايز حاجة رخيصة"),
+            (qb_cols[3], "💪 وضع الجيم",         "أنا بروح الجيم"),
+            (qb_cols[4], "👶 منتجات طفل",        "عندي طفل رضيع"),
+            (qb_cols[5], "🔄 غير الفاكهة",       "غير الفاكهة"),
+        ]
+        for col, label, cmd in quick_cmds:
+            with col:
+                if st.button(label, use_container_width=True, key=f"qb_{label}"):
+                    with st.spinner("⚙️ ..."):
+                        upd, summ, sc, pi = process_modification(
+                            cmd, sl, df_clean, monthly_budget,
+                            st.session_state.shop_session_id, family_size=family_size
+                        )
+                    if upd is not None and not upd.empty:
+                        st.session_state.shopping_list = _enrich_with_predictions(upd, predictions)
+                        st.session_state.mod_history.append({
+                            "instruction":  cmd,
+                            "result":       summ,
+                            "timestamp":    pd.Timestamp.now().strftime("%H:%M:%S"),
+                            "intent":       pi.get("intent", pi.get("intent_summary", "")),
+                            "score":        sc.total if sc else 0,
+                            "grade":        sc.grade if sc else "?",
+                            "action_count": pi.get("_applied", len(pi.get("rules", []))),
+                            "engine":       "📋 NLP" if pi.get("rules") else "🤖 AI",
+                        })
+                        st.rerun()
 
         st.divider()
 
