@@ -369,9 +369,14 @@ def generate_smart_shopping_list(
             )
 
             for product in extra_fillers:
-                qty = 1
-                total = round(product["effective_price"], 2)
+                qty = estimate_quantity(product["product_name_norm"], cat, family_size)
+                total = round(product["effective_price"] * qty, 2)
+                
                 if total > extra_per_cat:
+                    qty = max(1, int(extra_per_cat // product["effective_price"]))
+                    total = round(product["effective_price"] * qty, 2)
+                
+                if total > extra_per_cat or total <= 0:
                     continue
 
                 used_names.add(product["product_name_norm"])

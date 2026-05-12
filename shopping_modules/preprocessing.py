@@ -34,19 +34,37 @@ SUBCATEGORY_MAP = {
     "السمك والأطعمة البحرية":      "Proteins",
     "سمك ومأكولات بحرية":          "Proteins",
     "بيض":                         "Proteins",
+    "Meat & Poultry":              "Proteins",
+    "Frozen Meat & Poultry":       "Proteins",
+    "Fish & Seafood":              "Proteins",
+    "Frozen Fish & Seafood":       "Proteins",
+    "Eggs":                        "Proteins",
+    "Chilled Food Counter":        "Proteins", # Cold cuts etc
     # Dairy
     "جبنة و لبنة":                 "Dairy",
     "الزبادي":                     "Dairy",
     "حليب ولبن":                   "Dairy",
     "كريمة طعام":                  "Dairy",
-    "الأطعمة المبردة":             "Dairy",   # cold cuts / processed meats → still dairy aisle
+    "الأطعمة المبردة":             "Dairy",
+    "Cheese & Labneh":             "Dairy",
+    "Yoghurt":                     "Dairy",
+    "Milk & Laban":                "Dairy",
+    "Cream":                       "Dairy",
+    "Butter & Margarine":          "Dairy",
+    "Organic Dairy Products":      "Dairy",
     # Vegetables
     "خضروات":                      "Vegetables",
     "خضار وفواكه عضوية":           "Vegetables",
     "الفاكهة و الخضار المجمد":    "Vegetables",
+    "Vegetables":                  "Vegetables",
+    "Herbs":                       "Vegetables",
+    "Frozen Fruits & Vegetables":  "Vegetables",
+    "Organic Fruits & Vegetables": "Vegetables",
     # Fruits
     "الفاكهة":                     "Fruits",
     "المكسرات والتمور والفواكه المجففة": "Fruits",
+    "Fruits":                      "Fruits",
+    "Nuts, Dates & Dried Fruits":  "Fruits",
     # Grains
     "أرز , مكرونة والبقوليات":    "Grains",
     "السكر و مستلزمات الخبز":     "Grains",
@@ -55,9 +73,16 @@ SUBCATEGORY_MAP = {
     "منتجات الفطور الغذائية":     "Grains",
     "كرواسان، باستري وكيك":       "Grains",
     "مأكولات جاهزة":               "Grains",
+    "Rice, Pasta & Pulses":        "Grains",
+    "Sugar & Home Baking":         "Grains",
+    "Arabic Bread, Wraps & Flatbreads": "Grains",
+    "Bread & Rolls":               "Grains",
+    "Breakfast Cereals & Bars":    "Grains",
     # Oils & Fats
     "الزبدة و السمن":              "Oils & Fats",
     "مكونات الطبخ":                "Oils & Fats",
+    "Cooking Ingredients":         "Oils & Fats",
+    "Condiments, Dressings & Marinades": "Oils & Fats",
     # Beverages
     "شاي":                         "Beverages",
     "قهوة":                        "Beverages",
@@ -67,6 +92,13 @@ SUBCATEGORY_MAP = {
     "مشروبات بودرة":               "Beverages",
     "أعشاب":                       "Beverages",
     "مشروبات الأطفال":             "Beverages",
+    "Coffee":                      "Beverages",
+    "Tea":                         "Beverages",
+    "Soft Drinks":                 "Beverages",
+    "Juices":                      "Beverages",
+    "Powdered Drinks":             "Beverages",
+    "Water":                       "Beverages",
+    "Kids Drinks":                 "Beverages",
     # Snacks
     "الشوكولاته والمعجنات":        "Snacks",
     "بسكويت، كراكرز وكيك":        "Snacks",
@@ -76,6 +108,14 @@ SUBCATEGORY_MAP = {
     "آيس كريم وحلويات":            "Snacks",
     "حلويات شرقية":                "Snacks",
     "بودينج و اكتر":               "Snacks",
+    "Chips, Dips & Snacks":        "Snacks",
+    "Chocolate & Confectionery":   "Snacks",
+    "Biscuits, Crackers & Cakes":  "Snacks",
+    "Jams, Honey & Spreads":       "Snacks",
+    "Ready Meals & Appetizers":    "Snacks",
+    "Croissants, Pastries & Cakes": "Snacks",
+    "Oriental sweets":             "Snacks",
+    "Chilled Desserts":            "Snacks",
     # Cleaning & Personal Care
     "مستلزمات التنظيف":            "Cleaning & Personal Care",
     "مساحيق غسيل وتنظيف":         "Cleaning & Personal Care",
@@ -88,8 +128,18 @@ SUBCATEGORY_MAP = {
     "معطر جو و شمع":               "Cleaning & Personal Care",
     "مبيدات حشرية":                "Cleaning & Personal Care",
     "مستلزمات الورق":              "Cleaning & Personal Care",
+    "Cleaning Supplies":           "Cleaning & Personal Care",
+    "Laundry & Detergents":        "Cleaning & Personal Care",
+    "Tissues":                     "Cleaning & Personal Care",
+    "Kitchen & Toilet Rolls":      "Cleaning & Personal Care",
+    "Garbage Bags":                "Cleaning & Personal Care",
+    "Insect & Pest Control":       "Cleaning & Personal Care",
+    "Disposables Tableware & Napkins": "Cleaning & Personal Care",
+    "Food Storage, Foil & Cling film": "Cleaning & Personal Care",
+    "Candles & Air Fresheners":    "Cleaning & Personal Care",
     # Spices & Sauces
     "توابل، صلصات و خل":          "Spices & Sauces",
+    "World Specialities":          "Spices & Sauces",
 }
 
 # ─── Arabic text normalisation ───────────────────────────────────────────────
@@ -230,6 +280,22 @@ def load_and_clean(path_or_df) -> pd.DataFrame:
 
     # 12
     df = remove_outliers(df)
+
+    # 12.5 - Strict Price Floor Sanity Check
+    # Discard products with suspiciously low prices for their category (likely scraping errors)
+    try:
+        from utils import PRICE_THRESHOLDS
+        def is_price_realistic(row):
+            cat = row["category"]
+            price = row["effective_price"]
+            # Get threshold for category, default to a generic floor if missing
+            thresh = PRICE_THRESHOLDS.get(cat, {"cheap": 10})
+            floor = thresh.get("cheap", 10) * 0.2  # 20% of the 'cheap' tier is our absolute floor
+            return price >= floor
+        
+        df = df[df.apply(is_price_realistic, axis=1)].copy()
+    except ImportError:
+        pass # Fallback if utils not available
 
     # 13 — rough unit price (price / 1 assuming single unit; useful for future
     #      quantity optimisation)
