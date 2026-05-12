@@ -82,7 +82,7 @@ def _enrich_with_predictions(sl: pd.DataFrame, preds: pd.DataFrame) -> pd.DataFr
     ].to_dict("index")
 
     def _lookup(name: str) -> tuple:
-        key = str(name).lower().strip()
+        key = ' '.join(str(name).lower().split())
         if key in preds_map:
             r = preds_map[key]
             return r["trend_label"], r["predicted_price"], r["change_percentage"]
@@ -282,8 +282,9 @@ def render():
                     instruction=user_instruction.strip(), shopping_list=sl,
                     dataset=df_clean, budget=monthly_budget,
                     session_id=st.session_state.shop_session_id,
+                    family_size=family_size,
                 )
-            if updated is not None and len(updated) > 3:
+            if updated is not None and not updated.empty:
                 st.session_state.shopping_list = _enrich_with_predictions(updated, predictions)
                 st.success(mod_summary)
                 st.rerun()

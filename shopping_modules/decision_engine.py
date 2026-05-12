@@ -681,7 +681,7 @@ def execute_plan(
         logs.append(log)
 
     # ── Safety: never return empty list ───────────────────────────────────────
-    if df.empty or len(df) < 3:
+    if df.empty:
         df = _ensure_norm(shopping_list.copy())
         logs.append(ActionLog("safety", "", "skipped",
                               "⚠️ التعديل كان سيُفرغ القائمة — تمت الاستعادة",
