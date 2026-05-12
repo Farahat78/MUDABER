@@ -66,6 +66,11 @@ _CSS = """
 
 def _enrich_with_predictions(sl: pd.DataFrame, preds: pd.DataFrame) -> pd.DataFrame:
     """Join predictions onto the shopping list (best-effort fuzzy match on name)."""
+    # Drop columns if they already exist to prevent duplicates when called multiple times
+    for col in ["trend_label", "predicted_price", "change_percentage"]:
+        if col in sl.columns:
+            sl = sl.drop(columns=[col])
+
     if preds.empty or sl.empty:
         sl["trend_label"] = "STABLE"
         sl["predicted_price"] = None
